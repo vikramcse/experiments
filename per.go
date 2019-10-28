@@ -5,7 +5,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 
 	"github.com/chromedp/cdproto/performance"
@@ -17,16 +16,11 @@ func main() {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	// capture screenshot of an element
-	var buf []byte
-
 	// capture entire browser viewport, returning png with quality=90
-	if err := chromedp.Run(ctx, fullScreenshot(`https://visiblealpha.com/`, 90, &buf)); err != nil {
+	if err := chromedp.Run(ctx, getPerformanceMetrics(`https://codingwithvikram.com/`)); err != nil {
 		log.Fatal(err)
 	}
-	if err := ioutil.WriteFile("fullScreenshot.png", buf, 0644); err != nil {
-		log.Fatal(err)
-	}
+
 }
 
 // fullScreenshot takes a screenshot of the entire browser viewport.
@@ -34,7 +28,7 @@ func main() {
 // Liberally copied from puppeteer's source.
 //
 // Note: this will override the viewport emulation settings.
-func fullScreenshot(urlstr string, quality int64, res *[]byte) chromedp.Tasks {
+func getPerformanceMetrics(urlstr string) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(urlstr),
 		chromedp.ActionFunc(func(ctx context.Context) error {
@@ -53,7 +47,10 @@ func fullScreenshot(urlstr string, quality int64, res *[]byte) chromedp.Tasks {
 				return err
 			}
 			for _, element := range metrics {
-				fmt.Println(element)
+				if element.Name == "TaskDuration" {
+					v := fmt.Sprintf("%f", element.Value)
+					fmt.Println(element.Name, "->", v)
+				}
 			}
 			return nil
 		}),
